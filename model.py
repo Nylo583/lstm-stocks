@@ -10,7 +10,7 @@ import sklearn.preprocessing as skl
 
 data = yfin.Ticker("AAPL")
 data.info
-data_hist = data.history(period="3y", interval="1d")
+data_hist = data.history(period="10y", interval="1d")
 
 #pyp.plot(data_hist["Close"])
 #pyp.show()
@@ -46,7 +46,7 @@ model.add(layers.Dense(1))
 model.summary()
 
 model.compile(optimizer='adam', loss='mean_squared_error')
-model.fit(trainX, trainY, batch_size=1, epochs=1)
+model.fit(trainX, trainY, batch_size=2, epochs=1)
 
 # predictions = model.predict(testX)
 # predictions = mms.inverse_transform(predictions)
@@ -54,28 +54,37 @@ model.fit(trainX, trainY, batch_size=1, epochs=1)
 # print(rmse)
 
 def predict_future(model, days):
-    useValsX = mms.fit_transform(full_vals.reshape(-1, 1))[train_len-days:, :]
-    predictions = [[]]
+    predictions = []
     for d in range(days):
+        listNums = []
+        for a in range(days-d):
+            listNums.append(vals[len(full_vals)-days+d+a])
+        for b in range(len(predictions)):
+            listNums.append(predictions[b])
+        listNums = np.array(listNums)
+        listNums = np.reshape(listNums, (-1, 1))
         x = []
-        x.append(useValsX[len(useValsX)-(days-d):, 0] + predictions[:][0])
-        x = np.array(x)
-        x = np.reshape(x, (x.shape[0], 90, 1))
-        predictions += model.predict(x)[0][0]
-        
-    
-predict_future(model, 90)
-        
+        for c in range(days):
+            x.append(listNums)
+        x = np.asarray(x).astype('float32')
+        x = np.reshape(x, (x.shape[0], x.shape[1], 1))
+        predictions.append(np.float32(model.predict(x)[0][0]))
+    predictions = np.array(predictions)
+    predictions = np.reshape(predictions, (-1, 1))
+    predictions = mms.inverse_transform(predictions)
+    print(predictions)
+    return predictions
+future = predict_future(model, 90)
+
 
 
 trainRange = full_vals[:train_len]
 testRange = full_vals[train_len:]
-# pyp.figure(figsize=(16,8))
-# pyp.title('Model')
-# pyp.xlabel('Date')
-# pyp.ylabel('Close Price USD ($)')
-# pyp.plot(trainRange)
-# pyp.plot(testRange)
-# pyp.plot(predictions)
+pyp.figure(figsize=(16,8))
+pyp.title('Model')
+pyp.xlabel('Date')
+pyp.ylabel('Close Price USD ($)')
+pyp.plot(trainRange)
+pyp.plot(future)
 # pyp.legend(['Train', 'Val', 'Predictions'], loc='lower right')
-# pyp.show()
+pyp.show()
